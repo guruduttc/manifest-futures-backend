@@ -1,9 +1,10 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import yfinance as yf
+import os
 
 app = Flask(__name__)
-CORS(app)  # Allow frontend access from anywhere (for now)
+CORS(app)  # Allow frontend access from any origin
 
 @app.route('/api/analyze', methods=['POST'])
 def analyze_stock():
@@ -18,14 +19,14 @@ def analyze_stock():
         stock = yf.Ticker(ticker)
         cashflows = stock.cashflow
 
-        # Safely get Free Cash Flow (or a fallback)
+        # Safely get Free Cash Flow (or fallback)
         try:
             fcf = cashflows.loc['Total Cash From Operating Activities'].iloc[-1]
             fcf = float(fcf)
         except Exception:
-            fcf = 5_000_000_000  # Fallback value if data is missing
+            fcf = 5_000_000_000  # Fallback value
 
-        # DCF calculation
+        # Simple DCF calculation
         dcf_value = 0
         for year in range(1, years + 1):
             projected_fcf = fcf * ((1 + growth) ** year)
@@ -35,7 +36,7 @@ def analyze_stock():
         terminal_value /= ((1 + discount) ** years)
         total_value = dcf_value + terminal_value
 
-        # Mock AI-style analysis (real OpenAI integration coming next)
+        # AI-style mock insights
         response = {
             "problem_it_solves": "Helps enterprises manage large-scale cloud and AI infrastructure efficiently.",
             "customer_base_size": "Thousands of enterprise clients, including major hyperscalers.",
@@ -50,5 +51,7 @@ def analyze_stock():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ✅ Bind to 0.0.0.0 and use Render-provided PORT
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
